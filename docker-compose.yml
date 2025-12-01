@@ -5,6 +5,9 @@ services:
     restart: always
     environment:
       - POSTGRES_PASSWORD=admin
+      - CLOUDINARY_CLOUD_NAME=dylbcxjez
+      - CLOUDINARY_API_KEY=631673698979948
+      - CLOUDINARY_API_SECRET=PNrcVEYlYUYXQSStjzDeT76O2kE
     volumes:
       - ./docker/postgres:/var/lib/postgresql/18/docker
     ports:
