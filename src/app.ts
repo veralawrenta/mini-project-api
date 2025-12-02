@@ -4,9 +4,9 @@ import "reflect-metadata";
 import { PORT } from "./config/env";
 import { errorMiddleware } from "./middlewares/error.middleware";
 import { EventRouter } from "./modules/event/event.router";
-import { VoucherRouter } from "./modules/voucher/voucher.router"
+import { ReviewRouter } from "./modules/reviews/review-router";
 import { TransactionRouter } from "./modules/transaction/transaction.router";
-import { initScheduler } from "./scripts";
+import { VoucherRouter } from "./modules/voucher/voucher.router";
 
 export class App {
   app: Express;
@@ -28,13 +28,14 @@ export class App {
 
   private routes() {
     const eventRouter = new EventRouter();
-    const voucherRouter = new VoucherRouter();
     const transactionRouter = new TransactionRouter();
-
+    const voucherRouter = new VoucherRouter();
+    const reviewRouter = new ReviewRouter();
 
     this.app.use("/events", eventRouter.getRouter());
-    this.app.use("/vouchers", voucherRouter.getRouter());
     this.app.use("/transactions", transactionRouter.getRouter());
+    this.app.use("/vouchers", voucherRouter.getRouter());
+    this.app.use("/review", reviewRouter.getRouter())
   }
 
   private handleError() {
