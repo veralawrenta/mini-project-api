@@ -6,13 +6,197 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  
 }
 
-model Sample {
-  id        Int      @id @default(autoincrement())
-  name      String
+enum Role {
+  CUSTOMER
+  ORGANIZER
+}
+
+enum Category {
+  ENTERTAINMENT
+  BUSINESS
+  SPORT
+  ART
+  EDUCATION
+}
+
+enum City {
+  MEDAN
+  JAKARTA
+  DENPASAR
+  TIMIKA
+  LOMBOK
+  YOGYAKARTA
+}
+
+enum VenueType {
+  PAID
+  FREE
+}
+
+enum Status {
+  WAITING_FOR_PAYMENT
+  WAITING_FOR_ORGANIZER_CONFIRMATION
+  ACCEPTED
+  REJECTED
+  EXPIRED
+  CANCELED
+}
+
+model user {
+  id            Int       @id @default(autoincrement())
+  name          String
+  email         String    @unique
+  password      String
+  avatar        String?
+  role          Role      @default(CUSTOMER)
+  phone_number  String?
+  address       String?
+  referral_code String?
+  point         Int       @default(0)
+  isVerified    Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  events       Event[]
+  transactions Transaction[]
+  vouchers     Voucher[]
+  coupons      Coupon[]
+  reviews      Review[]
+
+  referralUsagesSent     ReferralUsage[] @relation("referrer")
+  referralUsagesReceived ReferralUsage[] @relation("referred")
+
+  @@map("users")
+}
+
+model Event {
+  id           Int  @id @default(autoincrement())
+  organizer    user @relation(fields: [organizer_id], references: [id])
+  organizer_id Int
+
+  title          String
+  banner         String?
+  description    String
+  category       Category
+  date           DateTime
+  start_time     DateTime?
+  end_time       DateTime?
+  city           City
+  venue          String
+  address        String
+  venue_type     VenueType
+  available_seat Int
+  price          Int
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  transactions Transaction[]
+  reviews      Review[]
+  vouchers     Voucher[]
+
+  @@index([title, category])
+  @@map("events")
+}
+
+model Voucher {
+  id       Int   @id @default(autoincrement())
+  event    Event @relation(fields: [event_id], references: [id])
+  event_id Int
+
+  voucher_code String
+  discount     Int
+  quantity     Int
+  expiredAt    DateTime
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  transactions Transaction[]
+  user         user?         @relation(fields: [userId], references: [id])
+  userId       Int?
+
+  @@map("vouchers")
+}
+
+model Coupon {
+  id      Int  @id @default(autoincrement())
+  user    user @relation(fields: [user_id], references: [id])
+  user_id Int
+
+  coupon_code String
+  expiredAt   DateTime
+  is_used     Boolean? @default(false)
+
+  transactions Transaction[]
+
+  @@map("coupons")
+}
+
+model Transaction {
+  id       String @id @default(cuid())
+  user_id  Int
+  event_id Int
+
+  quantity    Int
+  price       Int
+  total_price Int
+
+  voucher_id Int?
+  coupon_id  Int?
+  point_used Int  @default(0)
+
+  payment_date  DateTime?
+  payment_proof String?
+  status        Status
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@map ("samples")
+  reviews Review[]
+
+  user    user     @relation(fields: [user_id], references: [id])
+  event   Event    @relation(fields: [event_id], references: [id])
+  voucher Voucher? @relation(fields: [voucher_id], references: [id])
+  coupon  Coupon?  @relation(fields: [coupon_id], references: [id])
+
+  @@map("transactions")
+}
+
+model Review {
+  id             String @id @default(cuid())
+  transaction_id String
+
+  rating  Int
+  comment String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  transaction Transaction @relation(fields: [transaction_id], references: [id])
+  user        user?       @relation(fields: [userId], references: [id])
+  userId      Int?
+  event       Event?      @relation(fields: [eventId], references: [id])
+  eventId     Int?
+
+  @@map("reviews")
+}
+
+model ReferralUsage {
+  id Int @id @default(autoincrement())
+
+  referrer_id Int
+  referrer    user @relation("referrer", fields: [referrer_id], references: [id])
+
+  referred_id Int
+  referred    user @relation("referred", fields: [referred_id], references: [id])
+
+  @@map("referralUsages")
 }
