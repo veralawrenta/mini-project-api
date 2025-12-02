@@ -3,7 +3,10 @@ import express, { Express } from "express";
 import "reflect-metadata";
 import { PORT } from "./config/env";
 import { errorMiddleware } from "./middlewares/error.middleware";
-import { SampleRouter } from "./modules/sample/sample.router";
+import { EventRouter } from "./modules/event/event.router";
+import { VoucherRouter } from "./modules/voucher/voucher.router"
+import { TransactionRouter } from "./modules/transaction/transaction.router";
+import { initScheduler } from "./scripts";
 
 export class App {
   app: Express;
@@ -13,6 +16,7 @@ export class App {
     this.app = express();
     this.configure();
     this.routes();
+    //initScheduler();
   }
 
   private configure() {
@@ -23,9 +27,14 @@ export class App {
   }
 
   private routes() {
-    const sampleRouter = new SampleRouter();
+    const eventRouter = new EventRouter();
+    const voucherRouter = new VoucherRouter();
+    const transactionRouter = new TransactionRouter();
 
-    this.app.use("/samples", sampleRouter.getRouter());
+
+    this.app.use("/events", eventRouter.getRouter());
+    this.app.use("/vouchers", voucherRouter.getRouter());
+    this.app.use("/transactions", transactionRouter.getRouter());
   }
 
   private handleError() {
