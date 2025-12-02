@@ -59,9 +59,9 @@ export class EventService {
         organizer: {
           select: {
             name: true,
-          }
-        }
-      }
+          },
+        },
+      },
     });
     if (!event) throw new Error("Event not found");
     return event;
@@ -80,6 +80,13 @@ export class EventService {
     banner: Express.Multer.File,
     organizerId: number
   ) => {
+    const organizer = await this.prisma.user.findUnique({
+      where: { id: organizerId },
+    });
+
+    if (!organizer || organizer.role !== "ORGANIZER") {
+      throw new ApiError("Invalid organizer ID", 400);
+    }
     const existingEvent = await this.prisma.event.findFirst({
       where: { title: body.title, date: body.date, deletedAt: null },
     });
@@ -123,7 +130,7 @@ export class EventService {
 
   updateEvent = async (
     id: number,
-    body: UpdateEventDTO,
+    body: Partial<UpdateEventDTO>,
     banner?: Express.Multer.File
   ) => {
     const currentEvent = await this.prisma.event.findFirst({
@@ -131,15 +138,19 @@ export class EventService {
     });
     if (!currentEvent) throw new Error("event not found");
 
-    const data: any = { ...body };
-    if (body.date) data.date = new Date(body.date);
-
+    const data: any = {};
+    if (body.title !== undefined) data.name = body.title;
+    if (body.description !== undefined) data.description = body.description;
+    if (body.price !== undefined) data.price = body.price;
+    if (body.date !== undefined) data.date = new Date(body.date);
+    if (body.availableSeats !== undefined)
+      data.availableSeats = body.availableSeats;
     if (banner) {
       {
         const upload = await this.cloudinaryService.upload(banner);
         data.banner = upload.secure_url;
       }
-
+      
       const updatedEvent = await this.prisma.event.update({
         where: { id },
         data,

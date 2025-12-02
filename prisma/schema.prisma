@@ -172,10 +172,10 @@ model Review {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  user    User?  @relation(fields: [userId], references: [id])
-  userId  Int?
-  event   Event? @relation(fields: [eventId], references: [id])
-  eventId Int?
+  user    User  @relation(fields: [userId], references: [id])
+  userId  Int
+  event   Event @relation(fields: [eventId], references: [id])
+  eventId Int
 
   @@map("reviews")
 }

@@ -32,11 +32,11 @@ export class UpdateEventDTO {
 
     @IsOptional()
     @IsEnum(VenueType)
-    venue_type?: VenueType;
+    venueType?: VenueType;
 
     @IsOptional()
     @IsInt()
-    available_seat?: number;
+    availableSeats?: number;
 
     @IsOptional()
     @IsInt()
@@ -48,9 +48,9 @@ export class UpdateEventDTO {
 
     @IsOptional()
     @IsDateString()
-    start_time?: string;
+    startTime?: string;
 
     @IsOptional()
     @IsDateString()
-    end_time?: string;
+    endTime?: string;
 }

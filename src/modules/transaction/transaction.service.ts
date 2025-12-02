@@ -1,14 +1,18 @@
 import Decimal from "decimal.js";
 import { ApiError } from "../../utils/api.error";
 import { PrismaService } from "../prisma/prisma.service";
-import { CreateTransactionDTO } from "./dto/create-transaction";
+import { CreateTransactionDTO } from "./dto/create-transaction.dto";
 import { UpdateTransactionbyOrganizerDTO } from "./dto/update-transaction-organizer.dto";
+import { CloudinaryService } from "../cloudinary/cloudinary.service";
+import { Status } from "../../generated/prisma/enums";
 
 export class TransactionService {
   prisma: PrismaService;
+  cloudinaryService: CloudinaryService
 
   constructor() {
     this.prisma = new PrismaService();
+    this.cloudinaryService= new CloudinaryService();
   }
 
   createTransaction = async (body: CreateTransactionDTO, userId: number) => {
@@ -63,7 +67,7 @@ export class TransactionService {
           throw new ApiError("Voucher not valid for this event", 400);
         }
         if (appliedVoucher.quantity <= 0)
-            throw new ApiError("Voucher is no longer available", 400);
+          throw new ApiError("Voucher is no longer available", 400);
 
         if (appliedVoucher.discountAmount) {
           finalPrice = finalPrice.minus(appliedVoucher.discountAmount);
@@ -80,7 +84,7 @@ export class TransactionService {
             couponCode,
             userId,
             isUsed: false,
-            expiredAt: { gte: new Date() }
+            expiredAt: { gte: new Date() },
           },
         });
 
@@ -105,7 +109,7 @@ export class TransactionService {
           pointUsed: pointUsed ?? 0,
           voucherId: appliedVoucher?.id ?? null,
           couponId: appliedCoupon?.id ?? null,
-          status: "WAITING_FOR_PAYMENT"
+          status: "WAITING_FOR_PAYMENT",
         },
       });
 
@@ -138,7 +142,7 @@ export class TransactionService {
           },
         });
       }
-      
+
       if (appliedCoupon) {
         await tx.coupon.update({
           where: { id: appliedCoupon.id },
@@ -149,11 +153,53 @@ export class TransactionService {
     });
   };
 
-  updateTransactionbyOrganizer = async (id: number, organizerId: number, body:UpdateTransactionbyOrganizerDTO) => {
-    const { status } = body
+  updateTransactionbyOrganizer = async (
+    id: number,
+    organizerId: number,
+    body: UpdateTransactionbyOrganizerDTO
+  ) => {
+    const { status } = body;
     const transactions = await this.prisma.transaction.findFirst({
-      where : { id }
+      where: { id },
+      include: { event: true },
+    });
+
+    if (!transactions) throw new ApiError("Transaction not found", 404);
+    if (transactions.event.organizerId !== organizerId)
+      throw new ApiError("You are not the organizer of this event", 403);
+
+    return this.prisma.transaction.update({
+      where: { id },
+      data: { status: body.status },
+    });
+  };
+
+  uploadPaymentTransaction = async (
+    id: number,
+    userId: number,
+    payment_proof: Express.Multer.File
+  ) => {
+    const transaction = await this.prisma.transaction.findFirst({
+      where: { id },
+    });
+    if (!transaction) {
+      throw new ApiError ("Transaction not found", 404);
+    };
+
+    if (transaction.status !== Status.WAITING_FOR_PAYMENT) {
+      throw new ApiError ("Your transaction already processed by Organizer", 400);
+    }
+
+    const { secure_url } = await this.cloudinaryService.upload(payment_proof);
+
+    const updatedTransaction = this.prisma.transaction.update({
+      where : { id },
+      data: {
+        userId,
+        payment_proof: secure_url,
+        status: Status.WAITING_FOR_ORGANIZER_CONFIRMATION
+      }
     })
-    
-  }
+    return updatedTransaction;
+  };
 }
