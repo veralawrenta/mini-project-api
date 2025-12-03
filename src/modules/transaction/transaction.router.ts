@@ -2,7 +2,7 @@
 import { Router } from "express";
 import { TransactionController } from "./transaction.controller";
 import { validateBody } from "../../middlewares/validation.middleware";
-import { CreateTransactionDTO } from "./dto/create-transaction";
+import { CreateTransactionDTO } from "./dto/create-transaction.dto";
 
 
 export class TransactionRouter {
@@ -23,6 +23,13 @@ export class TransactionRouter {
       validateBody(CreateTransactionDTO),
       this.transactionController.createTransaction
     );
+    /*this.router.patch(
+      "/:id/organizer",
+      this.transactionController.updateTransactionbyOrganizer
+    );
+    this.router.post(
+      "/:id/upload-payment", this.transactionController.uploadPaymentTransaction
+    );*/
   }
 
   getRouter = () => {

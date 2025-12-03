@@ -35,18 +35,17 @@ export class EventController {
 
   createEvent = async (req: Request, res: Response) => {
     const user = res.locals.user;
-    const organizerId = Number(user?.id);
-    //const organizerId = 3; Temporary hardcoded organizer ID
+    //const organizerId = Number(res.locals.user?.id);
+    const organizerId = 3;
     const files = req.files as { [fieldname: string]: Express.Multer.File[] };
     const banner = files.banner?.[0];
     if (!banner) {
       throw new ApiError("Banner is required", 400);
     }
 
-    /*const organizerId = Number(res.locals.user?.id);
-      if (!organizerId) {
-        throw new ApiError("Unauthorized", 401);
-      }*/
+    if (!organizerId) {
+      throw new ApiError("Unauthorized", 401);
+    }
 
     if (!req.body) {
       return res.status(400).send({ message: "Event data is required" });
@@ -78,9 +77,8 @@ export class EventController {
     }
 
     const result = await this.eventService.updateEvent(id, {
-      ...data,
-      organizer_id: organizerId,
-    });
+      ...data, organizerId: organizerId}
+  );
 
     return res.status(200).send(result);
   };
