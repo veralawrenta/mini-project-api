@@ -44,22 +44,25 @@ enum Status {
   CANCELED
 }
 
-model User {
-  id           Int       @id @default(autoincrement())
-  name         String
-  email        String    @unique
-  password     String
-  avatar       String?
-  role         Role
-  referralCode String?
-  point        Int       @default(0)
-  isVerified   Boolean   @default(false)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  deletedAt    DateTime?
+model user {
+  id            Int       @id @default(autoincrement())
+  name          String
+  email         String    @unique
+  password      String
+  avatar        String?
+  role          Role      @default(CUSTOMER)
+  phone_number  String?
+  address       String?
+  referral_code String?
+  point         Int       @default(0)
+  isVerified    Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
 
   events       Event[]
   transactions Transaction[]
+  vouchers     Voucher[]
   coupons      Coupon[]
   reviews      Review[]
 
@@ -70,22 +73,22 @@ model User {
 }
 
 model Event {
-  id          Int  @id @default(autoincrement())
-  organizer   User @relation(fields: [organizerId], references: [id])
-  organizerId Int
+  id           Int  @id @default(autoincrement())
+  organizer    user @relation(fields: [organizer_id], references: [id])
+  organizer_id Int
 
   title          String
   banner         String?
   description    String
   category       Category
   date           DateTime
-  startTime      String?
-  endTime        String?
+  start_time     DateTime?
+  end_time       DateTime?
   city           City
   venue          String
   address        String
-  venueType      VenueType
-  availableSeats Int
+  venue_type     VenueType
+  available_seat Int
   price          Int
 
   createdAt DateTime  @default(now())
@@ -96,36 +99,39 @@ model Event {
   reviews      Review[]
   vouchers     Voucher[]
 
+  @@index([title, category])
   @@map("events")
 }
 
 model Voucher {
-  id      Int   @id @default(autoincrement())
-  event   Event @relation(fields: [eventId], references: [id])
-  eventId Int
+  id       Int   @id @default(autoincrement())
+  event    Event @relation(fields: [event_id], references: [id])
+  event_id Int
 
-  voucherCode String
-  discount    Int
-  quantity    Int
-  expiredAt   DateTime
+  voucher_code String
+  discount     Int
+  quantity     Int
+  expiredAt    DateTime
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
   transactions Transaction[]
+  user         user?         @relation(fields: [userId], references: [id])
+  userId       Int?
 
   @@map("vouchers")
 }
 
 model Coupon {
-  id     Int  @id @default(autoincrement())
-  user   User @relation(fields: [userId], references: [id])
-  userId Int
+  id      Int  @id @default(autoincrement())
+  user    user @relation(fields: [user_id], references: [id])
+  user_id Int
 
-  couponCode String
-  expiredAt  DateTime
-  isUsed     Boolean? @default(false)
+  coupon_code String
+  expiredAt   DateTime
+  is_used     Boolean? @default(false)
 
   transactions Transaction[]
 
@@ -133,21 +139,17 @@ model Coupon {
 }
 
 model Transaction {
-  id      Int   @id @default(autoincrement())
-  userId  Int
-  user    User  @relation(fields: [userId], references: [id])
-  eventId Int
-  event   Event @relation(fields: [eventId], references: [id])
+  id       String @id @default(cuid())
+  user_id  Int
+  event_id Int
 
-  quantity Int
-  price    Int
+  quantity    Int
+  price       Int
+  total_price Int
 
-  voucherId Int?
-  voucher   Voucher? @relation(fields: [voucherId], references: [id])
-
-  couponId  Int?
-  coupon    Coupon? @relation(fields: [couponId], references: [id])
-  pointUsed Int     @default(0)
+  voucher_id Int?
+  coupon_id  Int?
+  point_used Int  @default(0)
 
   payment_date  DateTime?
   payment_proof String?
@@ -158,24 +160,30 @@ model Transaction {
 
   reviews Review[]
 
+  user    user     @relation(fields: [user_id], references: [id])
+  event   Event    @relation(fields: [event_id], references: [id])
+  voucher Voucher? @relation(fields: [voucher_id], references: [id])
+  coupon  Coupon?  @relation(fields: [coupon_id], references: [id])
+
   @@map("transactions")
 }
 
 model Review {
-  id            String      @id @default(cuid())
-  transactionId Int
-  transaction   Transaction @relation(fields: [transactionId], references: [id])
-  rating        Int
-  comment       String?
+  id             String @id @default(cuid())
+  transaction_id String
+
+  rating  Int
+  comment String?
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  user    User  @relation(fields: [userId], references: [id])
-  userId  Int
-  event   Event @relation(fields: [eventId], references: [id])
-  eventId Int
+  transaction Transaction @relation(fields: [transaction_id], references: [id])
+  user        User?       @relation(fields: [userId], references: [id])
+  userId      Int?
+  event       Event?      @relation(fields: [eventId], references: [id])
+  eventId     Int?
 
   @@map("reviews")
 }
@@ -183,11 +191,11 @@ model Review {
 model ReferralUsage {
   id Int @id @default(autoincrement())
 
-  referrerId Int
-  referrer   User @relation("referrer", fields: [referrerId], references: [id])
+  referrer_id Int
+  referrer    user @relation("referrer", fields: [referrer_id], references: [id])
 
-  referredId Int
-  referred   User @relation("referred", fields: [referredId], references: [id])
+  referred_id Int
+  referred    user @relation("referred", fields: [referred_id], references: [id])
 
   @@map("referralUsages")
 }
