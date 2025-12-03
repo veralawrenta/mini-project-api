@@ -64,22 +64,38 @@ export class EventController {
 
   updateEvent = async (req: Request, res: Response) => {
     const id = Number(req.params.id);
-    const data = req.body;
+    const body = req.body;
     const user = res.locals.user;
+    const banner = req.file;
     const organizerId = Number(user?.id);
 
+    if (!organizerId) {
+      return res
+        .status(401)
+        .send({ message: "Organizer ID not found. Please log in." });
+    }
     /*if (user.role !== "ORGANIZER") {
         return res.status(403).send({message: "You are not authorized to update event."});
       }*/
 
-    if (!data || Object.keys(data).length === 0) {
+    if ((!body || Object.keys(body).length === 0) && !banner) {
       return res.status(400).send({ message: "No data provided for update." });
     }
 
-    const result = await this.eventService.updateEvent(id, {
-      ...data, organizerId: organizerId}
-  );
-
+    const result = await this.eventService.updateEvent(
+      id,
+      organizerId,
+      body,
+      banner
+    );
     return res.status(200).send(result);
+  };
+
+  getEventsByOrganizer = async (req: Request, res: Response) => {
+    const organizerId = Number(req.params.organizerId);
+    const events = await this.eventService.getEventsByOrganizer(organizerId);
+    return res
+      .status(200)
+      .send({ message: "Events retrieved successfully", data: events });
   };
 }

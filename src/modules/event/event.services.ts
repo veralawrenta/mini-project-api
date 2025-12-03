@@ -63,7 +63,7 @@ export class EventService {
         },
       },
     });
-    if (!event) throw new Error("Event not found");
+    if (!event) throw new ApiError("Event not found", 400);
     return event;
   };
 
@@ -71,7 +71,7 @@ export class EventService {
     const event = await this.prisma.event.findFirst({
       where: { title, deletedAt: null },
     });
-    if (!event) throw new Error("title of event not found");
+    if (!event) throw new ApiError("title of event not found", 400);
     return event;
   };
 
@@ -130,21 +130,29 @@ export class EventService {
 
   updateEvent = async (
     id: number,
+    organizerId: number,
     body: Partial<UpdateEventDTO>,
     banner?: Express.Multer.File
   ) => {
     const currentEvent = await this.prisma.event.findFirst({
       where: { id },
+      select: {organizerId: true, banner: true}
     });
-    if (!currentEvent) throw new Error("event not found");
+    if (!currentEvent) throw new ApiError ("event not found", 400);
 
     const data: any = {};
     if (body.title !== undefined) data.name = body.title;
     if (body.description !== undefined) data.description = body.description;
     if (body.price !== undefined) data.price = body.price;
     if (body.date !== undefined) data.date = new Date(body.date);
+    if (body.address!== undefined) data.address = body.address;
+    if (body.category!== undefined) data.category= body.category;
+    if (body.city!== undefined) data.city= body.city;
     if (body.availableSeats !== undefined)
       data.availableSeats = body.availableSeats;
+    if (data.venueType === 'free') {
+      data.price = 0;
+
     if (banner) {
       {
         const upload = await this.cloudinaryService.upload(banner);
@@ -152,10 +160,22 @@ export class EventService {
       }
       
       const updatedEvent = await this.prisma.event.update({
-        where: { id },
+        where: { id, organizerId },
         data,
       });
       return { message: "event updated succesfully", data: updatedEvent };
     }
   };
+  };
+
+  getEventsByOrganizer = async (organizerId: number) => {
+    const events = await this.prisma.event.findMany({
+      where: {
+        organizerId,
+        deletedAt: null
+      },
+    })
+    if (!organizerId) throw new ApiError ("Invalid Organizer Id", 400)
+    return events;
+  }
 }

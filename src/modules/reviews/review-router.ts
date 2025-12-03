@@ -15,10 +15,9 @@ export class ReviewRouter {
   private routes() {
     this.router.post("/", this.reviewController.createReview);
     this.router.get("/event/:id", this.reviewController.getReviewsByEvent)
-    this.router.get("/organizer/:id", this.reviewController.getReviewsByOrganizer)
+    this.router.get("/organizer/:organizerId", this.reviewController.getReviewsByOrganizer)
   }
     
-
   public getRouter() {
     return this.router;
   }

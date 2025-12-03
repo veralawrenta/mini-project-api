@@ -4,20 +4,20 @@ import { VoucherController } from "./voucher.controller";
 
 export class VoucherRouter {
   private router: Router;
-  private controller: VoucherController;
+  private voucherController: VoucherController;
 
   constructor() {
     this.router = Router();
-    this.controller = new VoucherController();
+    this.voucherController = new VoucherController();
     this.routes();
   }
 
   private routes() {
-    this.router.post("/", this.controller.createVoucher);
-    this.router.post("/:eventId/validate", this.controller.getVoucherForEvent);
-    this.router.get("/organizer/:organizerId", this.controller.getVouchersByOrganizer)
-    this.router.get("/:id", this.controller.getVoucherById);
-    this.router.put("/:voucherId", this.controller.updateVoucher);
+    this.router.post("/", this.voucherController.createVoucher);
+    this.router.post("/:eventId/validate", this.voucherController.getVoucherForEvent);
+    this.router.patch('/:id', this.voucherController.updateVoucher);
+    this.router.get("/organizer/:id", this.voucherController.getVouchersByOrganizer);
+    this.router.get("/:id", this.voucherController.getVoucherById);
   }
 
   public getRouter() {

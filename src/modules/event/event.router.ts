@@ -27,6 +27,7 @@ export class EventRouter {
             this.eventController.createEvent
         );
         this.router.patch('/:id', this.eventController.updateEvent)
+        this.router.get("/organizer/:id", this.eventController.getEventsByOrganizer);
     }
 
     getRouter = () => {

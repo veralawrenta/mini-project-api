@@ -14,6 +14,7 @@ export class TransactionRouter {
     this.router = Router();
     this.transactionController = new TransactionController ();
     //this.jwtMiddleware = new JwtMiddleware();
+    this.initRoutes()
   }
 
   private initRoutes = () => {
@@ -23,13 +24,11 @@ export class TransactionRouter {
       validateBody(CreateTransactionDTO),
       this.transactionController.createTransaction
     );
-    /*this.router.patch(
-      "/:id/organizer",
-      this.transactionController.updateTransactionbyOrganizer
-    );
+    /*
     this.router.post(
       "/:id/upload-payment", this.transactionController.uploadPaymentTransaction
     );*/
+    this.router.get("/:id", this.transactionController.getTransactionbyId);
   }
 
   getRouter = () => {

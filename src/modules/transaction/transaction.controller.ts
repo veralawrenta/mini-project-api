@@ -1,8 +1,5 @@
 import { Request, Response } from "express";
 import { TransactionService } from "./transaction.service";
-import { UpdateTransactionbyOrganizerDTO } from "./dto/update-transaction-organizer.dto";
-import { ApiError } from "../../utils/api.error";
-import { Status } from "../../generated/prisma/enums";
 
 export class TransactionController {
   transactionService: TransactionService;
@@ -12,37 +9,38 @@ export class TransactionController {
   }
 
   createTransaction = async (req: Request, res: Response) => {
-    const authUserId = Number(res.locals.user.id);
+    const userId = Number(req.body.userId);
+    //const authUserId = Number(res.locals.user.id);
+
+    if (!userId) {
+      return res.status(400).send({
+        message: "userId is required",
+      });
+    }
+
     const result = await this.transactionService.createTransaction(
       req.body,
-      authUserId
+      userId
+      //authUserId
     );
     return res.status(200).send(result);
   };
 
-  /*updateTransactionbyOrganizer = async (req: Request, res: Response) => {
+  /*getAllTransactionsbyEvent = async (req: Request, res: Response) => {
+    const result = await this.transactionService.getAllTransactionsbyEvent();
+    return res.status(200).send(result);
+  };*/
+
+  getTransactionbyId = async (req: Request, res: Response) => {
     const id = Number(req.params.id);
-    //const organizerId = Number(req.user?.id);
-    const body = req.body as UpdateTransactionbyOrganizerDTO;
-
-    //if (!organizerId) { throw new ApiError("Unauthorized", 401);}
-
-    const updatedTransaction =
-      await this.transactionService.updateTransactionbyOrganizer(
-        id,
-        //organizerId,
-        body
-      );
-
-    res.status(200).send({
-      message: `Transaction ${body.status.toLowerCase()} successfully`,
-      transaction: updatedTransaction,
-    });
+    const transaction = await this.transactionService.getTransactionById(id);
+    return res.status(200).send(transaction);
   };
 
   uploadPaymentTransaction = async (req: Request, res: Response) => {
     const id = Number(req.params.id);
-    //const userId = Number(req.user?.id)
+    //const userId = Number(req.locals.user?.id)
+    const userId = Number(req.body.userId);
     const {payment_proof} = req.body;
 
     if (!payment_proof) {
@@ -51,7 +49,7 @@ export class TransactionController {
 
     const transaction = await this.transactionService.uploadPaymentTransaction(
       id,
-      //userId,
+      userId,
       payment_proof,
     );
 
@@ -59,5 +57,5 @@ export class TransactionController {
       message: "Payment proof uploaded successfully",
       transaction,
   })
-}*/
+}
 }
