@@ -153,25 +153,25 @@ export class TransactionService {
     });
   };
 
-  updateTransactionbyOrganizer = async (
-    id: number,
-    organizerId: number,
-    body: UpdateTransactionbyOrganizerDTO
-  ) => {
-    const { status } = body;
-    const transactions = await this.prisma.transaction.findFirst({
-      where: { id },
-      include: { event: true },
+  getAllTransactionsbyEvent = async (eventId:number) => {
+    const trx = await this.prisma.transaction.findMany({
+      where : {
+        eventId: eventId,
+      },
+      include: {
+        user: { omit: { password: true }},
+        event: true,
+      }
     });
+      return trx;
+  }
 
-    if (!transactions) throw new ApiError("Transaction not found", 404);
-    if (transactions.event.organizerId !== organizerId)
-      throw new ApiError("You are not the organizer of this event", 403);
-
-    return this.prisma.transaction.update({
+  getTransactionById = async (id: number) => {
+    const trx = await this.prisma.transaction.findFirst({
       where: { id },
-      data: { status: body.status },
     });
+    if (!trx) throw new ApiError ("user not found", 400);
+    return trx;
   };
 
   uploadPaymentTransaction = async (
@@ -186,16 +186,19 @@ export class TransactionService {
       throw new ApiError ("Transaction not found", 404);
     };
 
+    if (transaction.userId !== userId) {
+      throw new ApiError("Unauthorized: You can only upload proof for your own transactions.", 403);
+  }
+
     if (transaction.status !== Status.WAITING_FOR_PAYMENT) {
       throw new ApiError ("Your transaction already processed by Organizer", 400);
     }
 
     const { secure_url } = await this.cloudinaryService.upload(payment_proof);
 
-    const updatedTransaction = this.prisma.transaction.update({
+    const updatedTransaction = await this.prisma.transaction.update({
       where : { id },
       data: {
-        userId,
         payment_proof: secure_url,
         status: Status.WAITING_FOR_ORGANIZER_CONFIRMATION
       }

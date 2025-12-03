@@ -41,7 +41,7 @@ export class ReviewController {
 
   getReviewsByOrganizer = async (req: Request, res: Response) => {
     const organizerId = Number(req.params.organizerId);
-    const reviews = await this.reviewService.getReviewsbyOrganizer(organizerId);
+    const reviews = await this.reviewService.getReviewsbyOrganizerId(organizerId);
     return res.send({ reviews });
   }
 }

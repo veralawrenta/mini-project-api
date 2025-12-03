@@ -35,7 +35,7 @@ export class App {
     this.app.use("/events", eventRouter.getRouter());
     this.app.use("/transactions", transactionRouter.getRouter());
     this.app.use("/vouchers", voucherRouter.getRouter());
-    this.app.use("/review", reviewRouter.getRouter())
+    this.app.use("/reviews", reviewRouter.getRouter())
   }
 
   private handleError() {

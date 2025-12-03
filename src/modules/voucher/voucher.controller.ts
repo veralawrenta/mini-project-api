@@ -26,7 +26,7 @@ export class VoucherController {
   };
 
   getVoucherForEvent = async (req: Request, res: Response) => {
-      const { voucherCode } = req.body;
+      const { voucherCode, userId } = req.body;
       const { eventId } = req.params;
 
       if (!voucherCode) {
@@ -35,11 +35,13 @@ export class VoucherController {
 
       const voucher = await this.voucherService.getVoucherForEvent(
         Number(eventId),
-        voucherCode
+        voucherCode,
+        Number(userId),
       );
 
       return res.send({
         message: "Voucher is valid",
+        discount: voucher.discount,
         voucher,
       });
   };
@@ -71,6 +73,7 @@ export class VoucherController {
       const voucher = await this.voucherService.getVoucherById(id);
       return res.status(200).send(voucher);
   };
+
   updateVoucher = async (req: Request, res: Response) => {
     const id = Number(req.params.id);
     const body = req.body;
