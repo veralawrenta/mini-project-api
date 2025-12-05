@@ -16,7 +16,6 @@ export class VoucherService {
     });
 
     if (existingVoucher) throw new ApiError("Voucher code already exists", 400);
-
     return this.prisma.voucher.create({
       data: {
         eventId: body.eventId,
@@ -121,27 +120,5 @@ export class VoucherService {
       where: { id },
       data,
     });
-  };
-  reedemVoucher = async (voucherId: number, transactionId: number) => {
-    const result = await this.prisma.$transaction(async (tx) => {
-      const updatedVoucher = await tx.voucher.update({
-        where: { id: voucherId, quantity: { gt: 0 } }, // Safety check: only update if quantity > 0
-        data: {
-          quantity: { decrement: 1 }, // Atomically reduce the remaining quantity
-        },
-      });
-
-      if (!updatedVoucher) {
-        throw new ApiError("Voucher redemption failed (out of stock).", 409);
-      }
-      await tx.transaction.update({
-        where: { id: transactionId },
-        data: { voucherId: voucherId },
-      });
-
-      return updatedVoucher;
-    });
-
-    return result;
   };
 }

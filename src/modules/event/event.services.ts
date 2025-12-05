@@ -26,7 +26,7 @@ export class EventService {
       deletedAt: null,
       ...(category && { category }), // filter by category if provided
       ...(search && {
-        title: { contains: search, mode: "insensitive" }, // case-insensitive search
+        title: { contains: search }, 
       }),
     };
 

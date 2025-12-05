@@ -15,7 +15,16 @@ export const checkExpiredTransactionScheduler = () => {
       // 1. Ambil transaksi WAITING_FOR_PAYMENT
       const waitingTransactions = await prisma.transaction.findMany({
         where: { status: Status.WAITING_FOR_PAYMENT },
-        select: { id: true, eventId: true, quantity: true, createdAt: true },
+        select: {
+          id: true,
+          eventId: true,
+          quantity: true,
+          createdAt: true,
+          userId: true,
+          pointUsed: true,
+          voucherId: true,
+          couponId: true,
+        },
       });
 
       if (waitingTransactions.length === 0) {
@@ -44,13 +53,11 @@ export const checkExpiredTransactionScheduler = () => {
       // 4. Kembalikan seat ke Event
       //    Group by eventId untuk menghindari update berkali-kali
       const seatRestoreMap: Record<number, number> = {};
-
+      //seat
       expiredTransactions.forEach((trx) => {
         if (!seatRestoreMap[trx.eventId]) seatRestoreMap[trx.eventId] = 0;
         seatRestoreMap[trx.eventId] += trx.quantity;
       });
-
-      // Update seat satu per eventId
       const eventIds = Object.keys(seatRestoreMap).map(Number);
       for (const eventId of eventIds) {
         const qtyToRestore = seatRestoreMap[eventId];
@@ -63,17 +70,56 @@ export const checkExpiredTransactionScheduler = () => {
             },
           },
         });
-
-        console.log(
-          `[CRON] Restored ${qtyToRestore} seats to eventId=${eventId}`
-        );
       }
 
-      console.log(
-        `[CRON] Marked ${expiredIds.length} transactions as EXPIRED and restored seats.`
-      );
-    } catch (error) {
-      console.error("[CRON ERROR] Failed to check expired transactions", error);
-    }
-  });
-};
+        //point
+        const pointRestoreMap: Record<number, number> = {};
+
+        expiredTransactions.forEach((trx) => {
+          if (!trx.pointUsed) return;
+          if (!pointRestoreMap[trx.userId]) pointRestoreMap[trx.userId] = 0;
+          pointRestoreMap[trx.userId] += trx.pointUsed;
+        });
+
+        for (const [userId, points] of Object.entries(pointRestoreMap)) {
+          await prisma.user.update({
+            where: { id: Number(userId) },
+            data: { point: { increment: points } },
+          });
+        }
+
+        //voucher
+        const voucherIds = expiredTransactions
+          .filter((trx) => trx.voucherId !== null)
+          .map((trx) => trx.voucherId!);
+
+        for (const voucherId of voucherIds) {
+          await prisma.voucher.update({
+            where: { id: voucherId },
+            data: { quantity: { increment: 1 } },
+          });
+        };
+
+        // 5️⃣ Restore COUPON (set isUsed = false)
+        const couponIds = expiredTransactions
+          .filter((trx) => trx.couponId !== null)
+          .map((trx) => trx.couponId!);
+
+        for (const couponId of couponIds) {
+          await prisma.coupon.update({
+            where: { id: couponId },
+            data: { isUsed: false },
+          });
+        }
+        return {
+          expired: expiredIds.length,
+          restoredSeats: seatRestoreMap,
+          restoredPoints: pointRestoreMap,
+          restoredVouchers: voucherIds,
+          restoredCoupons: couponIds,
+        } 
+      } catch (error) {
+        console.error("[CRON ERROR] Failed to process expired transactions:", error);
+      }
+    })
+  }
