@@ -174,35 +174,19 @@ export class TransactionService {
     return trx;
   };
 
-  uploadPaymentTransaction = async (
-    id: number,
-    userId: number,
-    payment_proof: Express.Multer.File
-  ) => {
-    const transaction = await this.prisma.transaction.findFirst({
-      where: { id },
-    });
-    if (!transaction) {
-      throw new ApiError ("Transaction not found", 404);
-    };
 
-    if (transaction.userId !== userId) {
-      throw new ApiError("Unauthorized: You can only upload proof for your own transactions.", 403);
-  }
-
-    if (transaction.status !== Status.WAITING_FOR_PAYMENT) {
-      throw new ApiError ("Your transaction already processed by Organizer", 400);
-    }
-
-    const { secure_url } = await this.cloudinaryService.upload(payment_proof);
-
-    const updatedTransaction = await this.prisma.transaction.update({
-      where : { id },
+  updateTransactionPaymentProof = async (id: number, file: Express.Multer.File) => {
+    console.log("hello2")
+  const { secure_url } = await this.cloudinaryService.upload(file);
+  
+  const updatedTransaction = await this.prisma.transaction.update({
+    where : { id },
       data: {
+        payment_date: new Date(),
         payment_proof: secure_url,
         status: Status.WAITING_FOR_ORGANIZER_CONFIRMATION
       }
     })
-    return updatedTransaction;
+    return updatedTransaction
   };
 }

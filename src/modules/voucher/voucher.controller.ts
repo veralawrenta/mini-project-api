@@ -1,49 +1,58 @@
-
 import { plainToInstance } from "class-transformer";
 import { validate } from "class-validator";
 import { Request, Response } from "express";
 import { CreateVoucherDTO } from "./dto/create-voucher.dto";
 import { VoucherService } from "./voucher.service";
 import { UpdateVoucherDTO } from "./dto/update-voucher.dto";
+import { PrismaService } from "../prisma/prisma.service";
 
 export class VoucherController {
   private voucherService: VoucherService;
+  private prisma: PrismaService;
 
   constructor() {
     this.voucherService = new VoucherService();
+    this.prisma = new PrismaService();
   }
 
   createVoucher = async (req: Request, res: Response) => {
-      const voucher = plainToInstance(CreateVoucherDTO, req.body);
-      const errors = await validate(voucher);
+    const { userId } = req.body;
+    if (!userId) {
+      return res.status(401).json({ message: "No userId provided" });
+    }
+    const voucherdto = plainToInstance(CreateVoucherDTO, req.body);
+    const errors = await validate(voucherdto);
 
-      if (errors.length > 0) {
-        return res.status(400).send({ errors });
-      }
+    if (errors.length > 0) {
+      return res.status(400).send({ errors });
+    }
+    const event = await this.prisma.event.findUnique({
+      where: { id: voucherdto.eventId },
+    });
 
-      const createVoucher = await this.voucherService.createVoucher(voucher);
-      return res.status(201).send(createVoucher);
+    const createVoucher = await this.voucherService.createVoucher(voucherdto);
+    return res.status(201).send(createVoucher);
   };
 
   getVoucherForEvent = async (req: Request, res: Response) => {
-      const { voucherCode, userId } = req.body;
-      const { eventId } = req.params;
+    const { voucherCode, userId } = req.body;
+    const { eventId } = req.params;
 
-      if (!voucherCode) {
-        return res.status(400).send({ message: "voucherCode is required" });
-      }
+    if (!voucherCode) {
+      return res.status(400).send({ message: "voucherCode is required" });
+    }
 
-      const voucher = await this.voucherService.getVoucherForEvent(
-        Number(eventId),
-        voucherCode,
-        Number(userId),
-      );
+    const voucher = await this.voucherService.getVoucherForEvent(
+      Number(eventId),
+      voucherCode,
+      Number(userId)
+    );
 
-      return res.send({
-        message: "Voucher is valid",
-        discount: voucher.discount,
-        voucher,
-      });
+    return res.send({
+      message: "Voucher is valid",
+      discount: voucher.discount,
+      voucher,
+    });
   };
 
   getVouchersByOrganizer = async (req: Request, res: Response) => {
@@ -55,7 +64,7 @@ export class VoucherController {
       }
 
       const vouchers = await this.voucherService.getVouchersByOrganizer(
-        organizerId,
+        organizerId
       );
 
       return res.status(200).send({
@@ -65,13 +74,13 @@ export class VoucherController {
     } catch (error: any) {
       console.error(error);
       return res.status(500).json({ message: error.message });
-    };
+    }
   };
 
   getVoucherById = async (req: Request, res: Response) => {
-      const id = Number(req.params.id);
-      const voucher = await this.voucherService.getVoucherById(id);
-      return res.status(200).send(voucher);
+    const id = Number(req.params.id);
+    const voucher = await this.voucherService.getVoucherById(id);
+    return res.status(200).send(voucher);
   };
 
   updateVoucher = async (req: Request, res: Response) => {
@@ -90,7 +99,7 @@ export class VoucherController {
 
     const updated = await this.voucherService.updateVoucher(
       id,
-      voucherdto,
+      voucherdto
       //organizerId
     );
 
@@ -99,4 +108,4 @@ export class VoucherController {
       voucher: updated,
     });
   };
-};
+}
